@@ -6,7 +6,6 @@ module VagrantPlugins
     module Actions
       class Create
         include Helpers::Client
-        include Vagrant::Util::Retryable
 
         def initialize(app, env)
           @app = app
@@ -54,15 +53,36 @@ module VagrantPlugins
           @machine.config.ssh.username = 'root'
 
           # wait for ssh to be ready
-          retryable(:tries => 2) do
-            retryable(:tries => 1, :sleep => 10) do
-              puts env[:interrupted]
-              next if env[:interrupted]
-              raise 'not ready' if !@machine.communicate.ready?
+          $reboot_num = 3
+          $check_num = 20
+          $i = 0
+          while $i <= $reboot_num do
+            $j = 0
+            while !@machine.communicate.ready? && $j < $check_num do
+              env[:ui].info I18n.t('vagrant_1cloud.info.ssh_off')
+              sleep 10
+              $j += 1
             end
-            puts env[:interrupted]
-            next if env[:interrupted]
-            Reload if !@machine.communicate.ready?
+
+            if $j < $check_num
+              env[:ui].info I18n.t('vagrant_1cloud.info.ssh_on')
+              break
+            else
+              if $i < $reboot_num
+                # submit reboot droplet request
+                result = @client.post("/server/#{@machine.id}/action", {
+                    :Type => 'PowerReboot'
+                })
+
+                # wait for request to complete
+                env[:ui].info I18n.t('vagrant_1cloud.info.reloading')
+                @client.wait_for_event(env, @machine.id, result['body']['ID'])
+
+                $i += 1
+              else
+                raise 'not ready'
+              end
+            end
           end
 
           # change host name

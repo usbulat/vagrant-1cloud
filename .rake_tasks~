@@ -1,0 +1,4 @@
+gem:build
+gem:install
+gem:install:local
+gem:release[remote]

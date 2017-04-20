@@ -14,6 +14,8 @@ en:
       creating_user: "Creating user account: %{user}..."
       setting_private_network: "Setting private network..."
       creating_private_network: "Creating private network..."
+      ssh_off: "ssh connection is off"
+      ssh_on: "ssh connection is on"
     config:
       token: "Token is required"
       private_key: "SSH private key path is required"
