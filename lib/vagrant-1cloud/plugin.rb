@@ -12,7 +12,7 @@ module VagrantPlugins
         Config
       end
 
-      provider(:onecloud, parallel: false, defaultable: false) do
+      provider(:onecloud, parallel: true, defaultable: false) do
         require_relative 'provider'
         Provider
       end
