@@ -31,7 +31,7 @@ module VagrantPlugins
 
           # wait for ssh to be ready
           $reboot_num = 3
-          $check_num = 20
+          $check_num = 30
           $i = 0
           while $i <= $reboot_num do
             $j = 0

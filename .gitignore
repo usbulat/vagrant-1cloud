@@ -10,3 +10,4 @@
 vagrant-1cloud.iml
 /.idea/
 /.svn/
+.rake_tasks~
