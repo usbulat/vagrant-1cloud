@@ -10,8 +10,7 @@ module VagrantPlugins
       attr_accessor :ram
       attr_accessor :hi_perf
       attr_accessor :ca_path
-      attr_accessor :net_name
-      attr_accessor :private_ip
+      attr_accessor :private_net
 
       def initialize
         @token              = UNSET_VALUE
@@ -23,8 +22,7 @@ module VagrantPlugins
         @ram                = UNSET_VALUE
         @hi_perf            = UNSET_VALUE
         @ca_path            = UNSET_VALUE
-        @net_name           = UNSET_VALUE
-        @private_ip         = UNSET_VALUE
+        @private_net        = UNSET_VALUE
       end
 
       def finalize!
@@ -37,8 +35,7 @@ module VagrantPlugins
         @ram                = '512' if @ram == UNSET_VALUE
         @hi_perf            = false if @hi_perf == UNSET_VALUE
         @ca_path            = nil if @ca_path == UNSET_VALUE
-        @net_name           = nil if @net_name == UNSET_VALUE
-        @private_ip         = nil if @private_ip == UNSET_VALUE
+        @private_net        = nil if @private_net == UNSET_VALUE
       end
 
       def validate(machine)

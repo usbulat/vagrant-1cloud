@@ -17,92 +17,92 @@ module VagrantPlugins
 
         def call(env)
           # check if network name is set
-          return @app.call(env) unless @machine.provider_config.net_name
+          return @app.call(env) unless @machine.provider_config.private_net
 
-          lockfile = "/tmp/" + @machine.provider_config.net_name.to_s + ".lock"
-          f = File.open(lockfile, "w+")
+          @machine.provider_config.private_net.each do |net, ip|
+            lockfile = "/tmp/" + net.to_s + ".lock"
+            f = File.open(lockfile, "w+")
 
-          retryable(:tries => 120, :sleep => 10) do
-            next if env[:interrupted]
-            raise 'not ready' if check_file_locked?(lockfile)
-          end
+            retryable(:tries => 120, :sleep => 10) do
+              next if env[:interrupted]
+              raise 'not ready' if check_file_locked?(lockfile)
+            end
 
-          f.flock(File::LOCK_EX)
+            f.flock(File::LOCK_EX)
 
-          # Getting private network by name
-          result = @client.request('/network')
-          private_network = result['body'].find { |network| network['Name'] == @machine.provider_config.net_name.to_s }
+            # Getting private network by name
+            result = @client.request('/network')
+            private_network = result['body'].find { |network| network['Name'] == net.to_s }
 
-          # Creating private network if it doesn't exist
-          if !private_network
-            result = @client.post("/network", {
-                :Name => @machine.provider_config.net_name,
-                :IsDHCP => false,
-                :DCLocation => @machine.provider_config.region
+            # Creating private network if it doesn't exist
+            if !private_network
+              result = @client.post("/network", {
+                  :Name => net,
+                  :IsDHCP => false,
+                  :DCLocation => @machine.provider_config.region
+              })
+              # Waiting for private network to create
+              env[:ui].info I18n.t('vagrant_1cloud.info.creating_private_network')
+              @client.wait_for_network(env, result['body']['ID'])
+
+              result = @client.request("/network/#{result['body']['ID']}")
+              private_network = result['body']
+            end
+
+            f.flock(File::LOCK_UN)
+
+            # Adding server to specified network
+            result = @client.post("/Server/#{@machine.id}/Action", {
+                :Type => "AddNetwork",
+                :NetworkID => private_network['ID']
             })
-            # Waiting for private network to create
-            env[:ui].info I18n.t('vagrant_1cloud.info.creating_private_network')
-            @client.wait_for_network(env, result['body']['ID'])
 
-            result = @client.request("/network/#{result['body']['ID']}")
-            private_network = result['body']
+            # Waiting for server to add to private network
+            env[:ui].info I18n.t('vagrant_1cloud.info.setting_private_network')
+            @client.wait_for_event(env, @machine.id, result['body']['ID'])
+
+            # refresh droplet state with provider
+            Provider.droplet(@machine, :refresh => true)
+
+            result = @client.request("/server/#{@machine.id}")
+            linked_network = result['body']['LinkedNetworks'].find { |network| network['NetworkID'] == private_network['ID'] }
+
+            if !ip
+              ip = linked_network['IP']
+            end
+
+            # override ssh username to root temporarily
+            user = @machine.config.ssh.username
+            @machine.config.ssh.username = 'root'
+
+            # set private and public network
+            @machine.communicate.execute(<<-BASH)
+                ifdown -a              
+                
+                export INTERFACE=eth0
+                export MATCHADDR=$(ifconfig -a | grep eth0 | awk '{print $NF}')
+                export MATCHID=$(udevadm info /sys/class/net/eth0 | grep P: | awk -F/ '{print $(NF-2)}')
+                /lib/udev/write_net_rules
+                
+                export INTERFACE=$(ifconfig -a | grep #{linked_network['MAC']} | awk '{print $1}')
+                export MATCHADDR=#{linked_network['MAC']}
+                export MATCHID=$(ifconfig -a | grep #{linked_network['MAC']} | awk 'system("udevadm info /sys/class/net/" $1)' | grep P: | awk -F/ '{print $(NF-2)}')
+                /lib/udev/write_net_rules
+  
+                udevadm control --reload-rules && udevadm trigger
+                
+                echo >> /etc/network/interfaces
+                ifconfig -a | grep #{linked_network['MAC']} | awk '{print "auto " $1}' >> /etc/network/interfaces
+                ifconfig -a | grep #{linked_network['MAC']} | awk '{print "iface " $1 " inet static"}' >> /etc/network/interfaces
+                echo "address #{ip}" >> /etc/network/interfaces
+                echo "netmask #{private_network['Mask']}" >> /etc/network/interfaces
+                
+                ifup -a
+            BASH
+
+            # reset username
+            @machine.config.ssh.username = user
           end
-
-          f.flock(File::LOCK_UN)
-
-          # Adding server to specified network
-          result = @client.post("/Server/#{@machine.id}/Action", {
-              :Type => "AddNetwork",
-              :NetworkID => private_network['ID']
-          })
-
-          # Waiting for server to add to private network
-          env[:ui].info I18n.t('vagrant_1cloud.info.setting_private_network')
-          @client.wait_for_event(env, @machine.id, result['body']['ID'])
-
-          # refresh droplet state with provider
-          Provider.droplet(@machine, :refresh => true)
-
-          result = @client.request("/server/#{@machine.id}")
-          linked_network = result['body']['LinkedNetworks'].find { |network| network['NetworkID'] == private_network['ID'] }
-
-          if !@machine.provider_config.private_ip
-            @machine.provider_config.private_ip = linked_network['IP']
-          end
-
-          # override ssh username to root temporarily
-          user = @machine.config.ssh.username
-          @machine.config.ssh.username = 'root'
-
-          # set private and public network
-          @machine.communicate.execute(<<-BASH)
-              ifdown -a              
-              
-              export INTERFACE=eth0
-              export MATCHADDR=$(ifconfig -a | grep eth0 | awk '{print $NF}')
-              export MATCHID=$(udevadm info /sys/class/net/eth0 | grep P: | awk -F/ '{print $(NF-2)}')
-              /lib/udev/write_net_rules
-              
-              export INTERFACE=$(ifconfig -a | grep #{linked_network['MAC']} | awk '{print $1}')
-              export MATCHADDR=#{linked_network['MAC']}
-              export MATCHID=$(ifconfig -a | grep #{linked_network['MAC']} | awk 'system("udevadm info /sys/class/net/" $1)' | grep P: | awk -F/ '{print $(NF-2)}')
-              /lib/udev/write_net_rules
-
-              udevadm control --reload-rules && udevadm trigger
-              
-              ifconfig -a | grep eth0 | awk '{print "hwaddress ether " $5}' >> /etc/network/interfaces
-              echo >> /etc/network/interfaces
-              ifconfig -a | grep #{linked_network['MAC']} | awk '{print "auto " $1}' >> /etc/network/interfaces
-              ifconfig -a | grep #{linked_network['MAC']} | awk '{print "iface " $1 " inet static"}' >> /etc/network/interfaces
-              echo "address #{@machine.provider_config.private_ip}" >> /etc/network/interfaces
-              echo "netmask #{private_network['Mask']}" >> /etc/network/interfaces
-              echo "hwaddress ether #{linked_network['MAC']}" >> /etc/network/interfaces
-              
-              ifup -a
-          BASH
-
-          # reset username
-          @machine.config.ssh.username = user
 
           @app.call(env)
         end
