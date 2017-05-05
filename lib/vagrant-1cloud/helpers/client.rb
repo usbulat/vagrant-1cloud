@@ -80,7 +80,7 @@ module VagrantPlugins
         end
 
         def wait_for_event(env, m_id, id)
-          retryable(:tries => 120, :sleep => 10) do
+          retryable(:tries => 200, :sleep => 10) do
             # stop waiting if interrupted
             next if env[:interrupted]
 
@@ -88,12 +88,12 @@ module VagrantPlugins
             result = self.request("/server/#{m_id}/action/#{id}")
 
             yield result if block_given?
-            raise 'not ready' if result['body']['State'] != 'Completed'
+            raise 'Action is not completed' if result['body']['State'] != 'Completed'
           end
         end
 
         def wait_for_network(env, net_id)
-          retryable(:tries => 120, :sleep => 10) do
+          retryable(:tries => 200, :sleep => 10) do
             # stop waiting if interrupted
             next if env[:interrupted]
 
@@ -101,7 +101,7 @@ module VagrantPlugins
             result = self.request("/network/#{net_id}")
 
             yield result if block_given?
-            raise 'not ready' if result['body']['State'] != 'Active'
+            raise 'Network is not active' if result['body']['State'] != 'Active'
           end
         end
       end

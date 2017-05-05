@@ -23,9 +23,9 @@ module VagrantPlugins
             lockfile = "/tmp/" + net.to_s + ".lock"
             f = File.open(lockfile, "w+")
 
-            retryable(:tries => 120, :sleep => 10) do
+            retryable(:tries => 200, :sleep => 10) do
               next if env[:interrupted]
-              raise 'not ready' if check_file_locked?(lockfile)
+              raise 'Problem with lockfile' if check_file_locked?(lockfile)
             end
 
             f.flock(File::LOCK_EX)

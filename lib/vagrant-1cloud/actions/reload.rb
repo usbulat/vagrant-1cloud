@@ -54,7 +54,7 @@ module VagrantPlugins
 
                 $i += 1
               else
-                raise 'not ready'
+                raise 'No ssh connection'
               end
             end
           end
