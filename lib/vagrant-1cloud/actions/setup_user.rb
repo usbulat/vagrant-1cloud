@@ -22,20 +22,14 @@ module VagrantPlugins
 
           # create user account
           @machine.communicate.execute(<<-BASH)
-            if ! (grep ^#{user}: /etc/passwd); then
-              groupadd "#{user}"
-              useradd -m -d "/home/#{user}" -g "#{user}" -r "#{user}"
-              chown #{user}:#{user} -R "/home/#{user}"
-            fi
+            groupadd "#{user}"
+            useradd -m -d "/home/#{user}" -g "#{user}" -r "#{user}"
+            chown #{user}:#{user} -R "/home/#{user}"
           BASH
 
           # grant user sudo access with no password requirement
           @machine.communicate.execute(<<-BASH)
-            if ! (grep #{user} /etc/sudoers); then
-              echo "#{user} ALL=(ALL:ALL) NOPASSWD: ALL" >> /etc/sudoers;
-            else
-              sed -i -e "/#{user}/ s/=.*/=(ALL:ALL) NOPASSWD: ALL/" /etc/sudoers;
-            fi
+            echo "#{user} ALL=(ALL:ALL) NOPASSWD: ALL" >> /etc/sudoers
           BASH
 
           # create the .ssh directory in the users home
@@ -49,7 +43,7 @@ module VagrantPlugins
           @machine.communicate.execute(<<-BASH)
             touch /home/#{user}/.ssh/authorized_keys
             echo \"#{pub_key}\" >> /home/#{user}/.ssh/authorized_keys
-            chown -R #{user} /home/#{user}/.ssh
+            chown #{user}:#{user} -R /home/#{user}/.ssh
             chmod 600 /home/#{user}/.ssh/authorized_keys
           BASH
 
