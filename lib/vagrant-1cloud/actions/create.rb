@@ -44,9 +44,10 @@ module VagrantPlugins
           path = File.expand_path(path, @machine.env.root_path)
           pub_key = OneCloud.public_key(path)
           Net::SSH.start(droplet['IP'], droplet['AdminUserName'], :password => droplet['AdminPassword']) do |ssh|
-            ssh.exec!("mkdir ~/.ssh")
+            ssh.exec!("mkdir -p ~/.ssh")
             ssh.exec!("touch ~/.ssh/authorized_keys")
             ssh.exec!("echo \"#{pub_key}\" >> ~/.ssh/authorized_keys")
+            ssh.exec!("chmod 600 ~/.ssh/authorized_keys")
           end
 
           user = @machine.config.ssh.username

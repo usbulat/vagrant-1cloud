@@ -47,11 +47,10 @@ module VagrantPlugins
           path = File.expand_path(path, @machine.env.root_path)
           pub_key = OneCloud.public_key(path)
           @machine.communicate.execute(<<-BASH)
-            if ! grep '#{pub_key}' /home/#{user}/.ssh/authorized_keys; then
-              echo '#{pub_key}' >> /home/#{user}/.ssh/authorized_keys;
-            fi
-
-            chown -R #{user} /home/#{user}/.ssh;
+            touch /home/#{user}/.ssh/authorized_keys
+            echo \"#{pub_key}\" >> /home/#{user}/.ssh/authorized_keys
+            chown -R #{user} /home/#{user}/.ssh
+            chmod 600 /home/#{user}/.ssh/authorized_keys
           BASH
 
           # reset username

@@ -80,7 +80,7 @@ module VagrantPlugins
         end
 
         def wait_for_event(env, m_id, id)
-          retryable(:tries => 200, :sleep => 10) do
+          retryable(:tries => 400, :sleep => 10) do
             # stop waiting if interrupted
             next if env[:interrupted]
 
@@ -93,7 +93,7 @@ module VagrantPlugins
         end
 
         def wait_for_network(env, net_id)
-          retryable(:tries => 200, :sleep => 10) do
+          retryable(:tries => 400, :sleep => 10) do
             # stop waiting if interrupted
             next if env[:interrupted]
 
