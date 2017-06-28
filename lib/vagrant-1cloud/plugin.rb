@@ -16,6 +16,16 @@ module VagrantPlugins
         require_relative 'provider'
         Provider
       end
+
+      command(:rebuild) do
+        require_relative 'commands/rebuild'
+        Commands::Rebuild
+      end
+
+      command("create-network") do
+        require_relative 'commands/create_network'
+        Commands::CreateNetwork
+      end
     end
   end
 end

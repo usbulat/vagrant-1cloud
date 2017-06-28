@@ -23,7 +23,7 @@ module VagrantPlugins
           # create user account
           @machine.communicate.execute(<<-BASH)
             groupadd "#{user}"
-            useradd -m -d "/home/#{user}" -g "#{user}" -r "#{user}"
+            useradd -m -d "/home/#{user}" -g "#{user}" -r "#{user}" -s "/bin/bash"
             chown #{user}:#{user} -R "/home/#{user}"
           BASH
 

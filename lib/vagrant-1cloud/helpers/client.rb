@@ -17,6 +17,7 @@ module VagrantPlugins
         def initialize(machine)
           @logger = Log4r::Logger.new('vagrant::onecloud::apiclient')
           @config = machine.provider_config
+          @machine = machine
           @client = Faraday.new({
             :url => 'https://api.1cloud.ru/',
             :ssl => {
@@ -25,12 +26,12 @@ module VagrantPlugins
           })
         end
 
-        def delete(path, params = {}, method = :delete)
+        def delete(path, params = {})
           @client.request :url_encoded
           request(path, params, :delete)
         end
 
-        def post(path, params = {}, method = :post)
+        def post(path, params = {})
           @client.headers['Content-Type'] = 'application/json'
           request(path, params, :post)
         end
@@ -38,6 +39,7 @@ module VagrantPlugins
         def request(path, params = {}, method = :get)
           begin
             @logger.info "Request: #{path}"
+            @logger.info "Parameters: #{params}"
             result = @client.send(method) do |req|
               req.url path
               req.headers['Authorization'] = "Bearer #{@config.token}"
@@ -102,6 +104,38 @@ module VagrantPlugins
 
             yield result if block_given?
             raise 'Network is not active' if result['body']['State'] != 'Active'
+          end
+        end
+
+        def wait_for_ssh(env, reboot_num, check_num)
+          i = 0
+          while i <= reboot_num do
+            j = 0
+            while !@machine.communicate.ready? && j < check_num do
+              env[:ui].info I18n.t('vagrant_1cloud.info.ssh_off')
+              sleep 10
+              j += 1
+            end
+
+            if j < check_num
+              env[:ui].info I18n.t('vagrant_1cloud.info.ssh_on')
+              break
+            else
+              if i < reboot_num
+                # submit reboot droplet request
+                result = @client.post("/server/#{@machine.id}/action", {
+                    :Type => 'PowerReboot'
+                })
+
+                # wait for request to complete
+                env[:ui].info I18n.t('vagrant_1cloud.info.reloading')
+                @client.wait_for_event(env, @machine.id, result['body']['ID'])
+
+                i += 1
+              else
+                raise 'No ssh connection'
+              end
+            end
           end
         end
       end

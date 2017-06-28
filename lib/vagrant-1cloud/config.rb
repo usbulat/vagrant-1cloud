@@ -11,6 +11,7 @@ module VagrantPlugins
       attr_accessor :hi_perf
       attr_accessor :ca_path
       attr_accessor :private_net
+      attr_accessor :ssh_key_name
 
       def initialize
         @token              = UNSET_VALUE
@@ -23,6 +24,7 @@ module VagrantPlugins
         @hi_perf            = UNSET_VALUE
         @ca_path            = UNSET_VALUE
         @private_net        = UNSET_VALUE
+        @ssh_key_name       = UNSET_VALUE
       end
 
       def finalize!
@@ -36,6 +38,7 @@ module VagrantPlugins
         @hi_perf            = false if @hi_perf == UNSET_VALUE
         @ca_path            = nil if @ca_path == UNSET_VALUE
         @private_net        = nil if @private_net == UNSET_VALUE
+        @ssh_key_name       = 'Vagrant' if @ssh_key_name == UNSET_VALUE
       end
 
       def validate(machine)
