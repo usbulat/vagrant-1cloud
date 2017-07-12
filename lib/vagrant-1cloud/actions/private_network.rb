@@ -26,8 +26,17 @@ module VagrantPlugins
 
             raise "Private network #{net} is not created" if !private_network
 
+            # Checking if machine is already added to network
+            result = @client.request("/server/#{@machine.id}")
+            linked_network = result['body']['LinkedNetworks'].find { |network| network['NetworkID'] == private_network['ID'] }
+
+            if linked_network
+                env[:ui].info I18n.t('vagrant_1cloud.info.already_connected', network: net)
+                next
+            end
+
             # Adding server to specified network
-            result = @client.post("/Server/#{@machine.id}/Action", {
+            result = @client.post("/server/#{@machine.id}/Action", {
                 :Type => "AddNetwork",
                 :NetworkID => private_network['ID']
             })

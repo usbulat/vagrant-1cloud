@@ -22,6 +22,11 @@ module VagrantPlugins
         Commands::Rebuild
       end
 
+      command("add-network") do
+        require_relative 'commands/add_network'
+        Commands::AddNetwork
+      end
+
       command("create-network") do
         require_relative 'commands/create_network'
         Commands::CreateNetwork

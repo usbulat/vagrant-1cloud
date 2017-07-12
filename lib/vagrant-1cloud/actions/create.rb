@@ -24,7 +24,7 @@ module VagrantPlugins
             :RAM => @machine.provider_config.ram,
             :DCLocation => @machine.provider_config.region,
             :ImageID => @machine.provider_config.image,
-            :Name => @machine.config.vm.hostname || @machine.name,
+            :Name => @machine.name,
             :SshKeys => ssh_key_id,
             :isHighPerformance => @machine.provider_config.hi_perf
           }.delete_if { |k, v| v.nil? })
@@ -58,7 +58,7 @@ module VagrantPlugins
 
             ifdown -a
             export INTERFACE=eth0
-            export MATCHADDR=$(ifconfig -a | grep eth0 | awk '{print $NF}')
+            export MATCHADDR=$(ifconfig eth0 | awk 'NR==1{print $NF}')
             export MATCHID=$(udevadm info /sys/class/net/eth0 | grep P: | awk -F/ '{print $(NF-2)}')
             /lib/udev/write_net_rules
             udevadm control --reload-rules && udevadm trigger

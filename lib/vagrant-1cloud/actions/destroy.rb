@@ -18,6 +18,7 @@ module VagrantPlugins
           @client.delete("/server/#{@machine.id}")
 
           env[:ui].info I18n.t('vagrant_1cloud.info.destroying')
+          @client.wait_for_destroy(env, @machine.id)
 
           # set the machine id to nil to cleanup local vagrant state
           @machine.id = nil

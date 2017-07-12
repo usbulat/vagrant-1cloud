@@ -27,6 +27,7 @@ en:
       request: "Request: %{path}"
       params: "Parameters: %{params}"
       response: "Response: %{body}"
+      already_connected: "VPS is already connected to %{network} network"
     config:
       token: "Token is required"
       private_key: "SSH private key path is required"

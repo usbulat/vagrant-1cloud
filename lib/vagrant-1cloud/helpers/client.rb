@@ -94,6 +94,43 @@ module VagrantPlugins
           end
         end
 
+        def wait_for_destroy(env, id)
+          retryable(:tries => 400, :sleep => 10) do
+            # stop waiting if interrupted
+            next if env[:interrupted]
+
+            # check action status
+            begin
+              result = @client.send(:get) do |req|
+                req.url "/server/#{id}"
+                req.headers['Authorization'] = "Bearer #{@config.token}"
+              end
+            rescue Faraday::Error::ConnectionFailed => e
+              # TODO this is suspect but because faraday wraps the exception
+              #      in something generic there doesn't appear to be another
+              #      way to distinguish different connection errors :(
+              if e.message =~ /certificate verify failed/
+                raise Errors::CertificateError
+              end
+              raise e
+            end
+            begin
+              body = JSON.parse(%Q[{"body":#{result.body}}])
+              @logger.info "Response: #{body}"
+            rescue JSON::ParserError => e
+              raise(Errors::JSONError, {
+                  :message => e.message,
+                  :path => path,
+                  :params => params,
+                  :response => result.body
+              })
+            end
+            result = Result.new(body)
+            yield result if block_given?
+            raise 'Destroy is not completed' if result['body']['Message'] != 'Server not found'
+          end
+        end
+
         def wait_for_network(env, net_id)
           retryable(:tries => 400, :sleep => 10) do
             # stop waiting if interrupted

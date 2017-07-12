@@ -12,6 +12,7 @@ Features include:
 - Setup a SSH public key for authentication
 - Create a new user account during VPS creation
 - Create private network
+- Add VPS to private network
 - Rebuild VPS
 
 
@@ -97,6 +98,7 @@ The provider supports the following Vagrant sub-commands:
 - `vagrant reload` - Reboots the VPS instance.
 - `vagrant status` - Outputs the status (active, off, not created) for the VPS instance.
 - `vagrant create-network` - Creates private network.
+- `vagrant add-network` - Adds VPS to specified private network.
 - `vagrant rebuild` - Rebuilds the VPS.
 
 Troubleshooting
